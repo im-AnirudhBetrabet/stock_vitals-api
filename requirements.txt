@@ -1,0 +1,20 @@
+# Web Framework & Server
+fastapi
+uvicorn[standard]
+
+# Database & Infrastructure
+supabase
+python-dotenv
+
+# Data Science & Financial Logic
+pandas
+numpy
+yfinance
+
+# Security & Utilities
+pydantic
+pydantic-settings
+python-multipart
+
+# Testing
+pytest
