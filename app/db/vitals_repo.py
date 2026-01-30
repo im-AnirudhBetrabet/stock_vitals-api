@@ -17,7 +17,7 @@ class VitalsRepository:
         """
 
 
-        columns = "ticker, final_score, timestamp, stocks(name)"
+        columns = "ticker, final_score,track_used, timestamp, stocks(name) as company_name"
 
         # Base query
         query = self._client.table("latest_stock_vitals").select(columns, count="exact")
@@ -29,7 +29,6 @@ class VitalsRepository:
         stop = skip + limit - 1
 
         response = query.order("final_score", desc=True).range(skip, stop).execute()
-
         return response.data, response.count
 
     async def fetch_stock_details(self, ticker: str) -> dict | None:

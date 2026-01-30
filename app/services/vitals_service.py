@@ -16,7 +16,7 @@ class VitalsService:
             stock_info = item.get("stocks", {}) or {}
             formatted_items.append({
                 "ticker"      : item["ticker"],
-                "company_name": stock_info.get("company_name", "Unknown"),
+                "company_name": stock_info.get("name", "Unknown"),
                 "final_score" : item["final_score"],
                 "timestamp"   : item["timestamp"]
             })

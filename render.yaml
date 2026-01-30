@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: stock-vitals-api
+    env: python
+    region: singapore
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: ALLOWED_ORIGINS
+        value: https://trident-b309a.web.app/,http://localhost:5173
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
