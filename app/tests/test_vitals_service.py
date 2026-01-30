@@ -62,4 +62,41 @@ async def test_empty_pagination_result(service, mock_repo):
     assert result["pages"] == 0
     assert result["items"] == []
 
-    
+
+@pytest.mark.asyncio
+async def test_filtering_by_track(service, mock_repo):
+    """
+    Scenario: Verify that the service correctly filters by track and only
+    returns matching items.
+    """
+    mock_data = [
+        {"id": 2, "ticker": "ZOMATO.NS", "final_score": 85, "timestamp": "2026-01-26T12:00:00",
+         "track_used": "Scalers", "accelerator_score": 50, "quality_score": 15, "bargain_score": 20,
+         "raw_metrics": {}, "metric_scores": {}}
+    ]
+    mock_repo.fetch_paginated_logs.return_value = (mock_data, 1)
+
+    # 2. Execute Service with Filter
+    result = await service.get_paginated_vitals(page=1, size=10, track="Scalers")
+
+    # 3. Assertions
+    # Verify the repo was called with the correct filter
+    mock_repo.fetch_paginated_logs.assert_called_with(0, 10, "Scalers")
+
+    # Verify every item returned matches the track
+    for item in result["items"]:
+        assert item.track_used == "Scalers"
+    assert result["total"] == 1
+
+
+@pytest.mark.asyncio
+async def test_filtering_case_insensitivity(service, mock_repo):
+    """
+    QA Test: Verify that 'scalers', 'SCALERS', and 'Scalers' are treated the same.
+    """
+    mock_repo.fetch_paginated_logs.return_value = ([], 0)
+
+    # Test lowercase input
+    await service.get_paginated_vitals(1, 10, track="scalers")
+
+    mock_repo.fetch_paginated_logs.assert_called_with(0, 10, "scalers")
