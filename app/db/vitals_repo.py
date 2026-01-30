@@ -1,3 +1,5 @@
+from re import search
+
 from app.db.supabase import supabase
 
 class VitalsRepository:
@@ -40,3 +42,15 @@ class VitalsRepository:
         response = self._client.table("latest_stock_vitals").select("*").eq("ticker", ticker.upper()).single().execute()
         print(f"Response >>{response}")
         return response.data if response.data else None
+
+    async def search_stocks(self, query: str, limit: int = 5):
+        """
+        Fuzzy search across ticker and name for the UI autocomplete for stock search.
+        :param query: Search term
+        :param limit: Maximum number of results expected
+        :return:
+        """
+        search_term = f"%{query}%"
+        response    =  self._client.table("stocks").select("ticker, name").or_(f"ticker.ilike.{search_term},name.ilike.{search_term}").limit(limit).execute()
+
+        return response.data

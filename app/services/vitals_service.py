@@ -21,7 +21,6 @@ class VitalsService:
                 "timestamp"   : item["timestamp"]
             })
 
-        # items = [ AnalysisLogRead.model_validate(item) for item in data]
 
         return {
             "items" : [StockCard(**item) for item in formatted_items],
@@ -43,3 +42,8 @@ class VitalsService:
             return None
 
         return StockDetail.model_validate(data)
+
+    async def search_tickers(self, query: str):
+        if not query or len(query) < 2:
+            return []
+        return await self._repo.search_stocks(query)
