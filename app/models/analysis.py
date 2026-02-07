@@ -6,8 +6,8 @@ class StockCard(BaseModel):
     ticker       : str
     company_name : Optional[str] = None
     final_score  : float
-    current_price: Optional[float] = None
-    price_change : Optional[float] = None
+    current_price: float = 0.0
+    price_change : Optional[float] = 0.0
     timestamp    : datetime
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)

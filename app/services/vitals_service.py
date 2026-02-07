@@ -1,26 +1,36 @@
 from app.db.vitals_repo import VitalsRepository
 from app.models.analysis import StockCard, StockDetail
-
+from app.utils.get_price_data import get_price_data
 
 class VitalsService:
     def __init__(self):
         self._repo = VitalsRepository()
+
 
     async def get_paginated_vitals(self, page: int, size: int, track: str = None):
         skip = (page - 1) * size
         data, total_count = await self._repo.fetch_paginated_logs(skip, size, track)
 
         formatted_items = []
+        tickers = [item["ticker"] for item in data]
+
+        price_map = await get_price_data(tickers)
 
         for item in data:
             stock_info = item.get("stocks", {}) or {}
-            formatted_items.append({
-                "ticker"      : item["ticker"],
-                "company_name": stock_info.get("name", "Unknown"),
-                "final_score" : item["final_score"],
-                "timestamp"   : item["timestamp"]
+            ticker     = item["ticker"]
+            prices     = price_map.get(ticker, {
+                "current_price": 0.0, "day_high": 0.0, "day_low": 0.0, "previous_close": 0.0
             })
-
+            price_change = 0.0 if prices["previous_close"] == 0.0 else round(((prices["current_price"] - prices["previous_close"]) / prices["previous_close"]) * 100, 3)
+            formatted_items.append({
+                "ticker"       : ticker,
+                "company_name" : stock_info.get("name", "Unknown"),
+                "final_score"  : item["final_score"],
+                "timestamp"    : item["timestamp"],
+                "current_price": prices["current_price"],
+                "price_change" : price_change
+            })
 
         return {
             "items" : [StockCard(**item) for item in formatted_items],

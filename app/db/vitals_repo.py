@@ -39,7 +39,6 @@ class VitalsRepository:
         """
 
         response = self._client.table("latest_stock_vitals").select("*").eq("ticker", ticker.upper()).single().execute()
-        print(f"Response >>{response}")
         return response.data if response.data else None
 
     async def search_stocks(self, query: str, limit: int = 5):
