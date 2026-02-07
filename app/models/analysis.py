@@ -20,3 +20,5 @@ class StockDetail(StockCard):
     raw_metrics      : Dict[str, Any]
     metric_scores    : Dict[str, Any]
     price_data       : Dict[str, Any]
+    confidence_score : float
+    data_points      : str
