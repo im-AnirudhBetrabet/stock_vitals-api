@@ -4,79 +4,63 @@ import asyncio
 from typing import Dict
 from fastapi.concurrency import run_in_threadpool
 
-
-async def get_price_data(tickers: list) -> Dict[str, float]:
-    """Helper to fetch a single stock price safely"""
-    """
-            Fetches ALL prices in a SINGLE request.
-            Solves the timeout issue by avoiding 10 separate connections.
-            """
-
+async def get_price_data(tickers: list) -> Dict[str, dict]:
     def fetch():
         if not tickers:
             return {}
-
-        tickers_str = " ".join(tickers)
-
+        ticker_str = " ".join(tickers) if len(tickers) > 1 else tickers
         try:
-            # threads=False is safer here as we are already in a threadpool
             data = yf.download(
-                tickers_str,
-                period="1d",
+                ticker_str,
+                period="2d",
                 group_by='ticker',
                 threads=False,
-                progress=False
+                progress=False,
+                auto_adjust=False
             )
+
+            if data.empty:
+                return {}
+
         except Exception as e:
             print(f"Yahoo Batch Download Failed: {e}")
             return {}
 
         prices = {}
+
         for ticker in tickers:
             try:
-                # Initialize default values
-                price_data = {
-                    "current_price": 0.0,
-                    "day_high": 0.0,
-                    "day_low": 0.0,
-                    "previous_close": 0.0
-                }
+                df = data[ticker] if len(tickers) > 1 else data
+
+                if df.empty or len(df) < 1:
+                    continue
+
+                latest_row = df.iloc[-1]
 
                 if len(tickers) > 1:
-                    if ticker in data.columns.levels[0]:
-                        ticker_data = data[ticker]
-                        price_data["current_price"] = 0.0 if pd.isna(ticker_data['Close'].iloc[-1]) else round(
-                            float(ticker_data['Close'].iloc[-1]), 2)
-                        price_data["day_high"] = 0.0 if pd.isna(ticker_data['High'].iloc[-1]) else round(
-                            float(ticker_data['High'].iloc[-1]), 2)
-                        price_data["day_low"] = 0.0 if pd.isna(ticker_data['Low'].iloc[-1]) else round(
-                            float(ticker_data['Low'].iloc[-1]), 2)
-                        price_data["previous_close"] = 0.0 if pd.isna(ticker_data['Open'].iloc[-1]) else round(
-                            float(ticker_data['Open'].iloc[-1]), 2)
+                    prev_close = df['Close'].iloc[-2] if len(df) > 1 else 0.0
+                    prices[ticker] = {
+                        "current_price" : 0.0 if pd.isna(latest_row['Close']) else round(float(latest_row['Close']), 2),
+                        "day_high"      : 0.0 if pd.isna(latest_row['High'])  else round(float(latest_row['High']), 2),
+                        "day_low"       : 0.0 if pd.isna(latest_row['Low'])   else round(float(latest_row['Low']), 2),
+                        "previous_close": 0.0 if pd.isna(prev_close) else round(float(prev_close), 2)
+                    }
                 else:
-                    # Single ticker dataframe structure is different (flat)
-                    price_data["current_price"] = 0.0 if pd.isna(data['Close'].iloc[-1]) else round(
-                        float(data['Close'].iloc[-1]), 2)
-                    price_data["day_high"] = 0.0 if pd.isna(data['High'].iloc[-1]) else round(
-                        float(data['High'].iloc[-1]), 2)
-                    price_data["day_low"] = 0.0 if pd.isna(data['Low'].iloc[-1]) else round(float(data['Low'].iloc[-1]),
-                                                                                            2)
-                    price_data["previous_close"] = 0.0 if pd.isna(data['Open'].iloc[-1]) else round(
-                        float(data['Open'].iloc[-1]), 2)
-
-                prices[ticker] = price_data
+                    prev_close = df[ticker]['Close'].iloc[-2] if len(df) > 1 else 0.0
+                    prices[ticker] = {
+                        "current_price" : 0.0 if pd.isna(latest_row[ticker]['Close']) else round(float(latest_row[ticker]['Close']), 2),
+                        "day_high"      : 0.0 if pd.isna(latest_row[ticker]['High'])  else round(float(latest_row[ticker]['High']), 2),
+                        "day_low"       : 0.0 if pd.isna(latest_row[ticker]['Low'])   else round(float(latest_row[ticker]['Low']), 2),
+                        "previous_close": 0.0 if pd.isna(prev_close) else round(float(prev_close), 2)
+                    }
 
             except Exception as e:
-                # If one fails, just return defaults for that one
                 prices[ticker] = {
                     "current_price": 0.0, "day_high": 0.0, "day_low": 0.0, "previous_close": 0.0
                 }
-
         return prices
 
-    # Run in threadpool with a safety timeout
     try:
-        return await asyncio.wait_for(run_in_threadpool(fetch), timeout=10.0)
+        return await asyncio.wait_for(run_in_threadpool(fetch), timeout=15.0)
     except asyncio.TimeoutError:
-        print("Batch price fetch timed out")
         return {}

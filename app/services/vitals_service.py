@@ -47,9 +47,16 @@ class VitalsService:
         :return:
         """
         data = await self._repo.fetch_stock_details(ticker)
-
         if not data:
             return None
+        ticker_list = list()
+        ticker_list.append(ticker)
+
+        price_data   = await get_price_data(ticker_list)
+        price_data   = price_data.get(ticker)
+        price_change = 0.0 if price_data.get("previous_close") == 0.0 else round(((price_data.get('current_price', 0.0) - price_data.get('previous_close', 0.0)) / price_data.get('previous_close', 0.0)) * 100, 2)
+        price_data['price_change'] = price_change
+        data['price_data']         = price_data
 
         return StockDetail.model_validate(data)
 

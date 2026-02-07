@@ -19,3 +19,4 @@ class StockDetail(StockCard):
     bargain_score    : float
     raw_metrics      : Dict[str, Any]
     metric_scores    : Dict[str, Any]
+    price_data       : Dict[str, Any]
